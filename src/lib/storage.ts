@@ -35,6 +35,16 @@ export function fileUrl(relativePath: string): string {
   return `/api/files/${clean}`;
 }
 
+/** Inverse of fileUrl: "/api/files/foo/bar.png" -> "foo/bar.png". */
+export function storageRelFromUrl(url: string): string {
+  return url.replace(/^\/api\/files\//, "");
+}
+
+/** Absolute disk path for a stored file given its app URL. */
+export function diskPathFromUrl(url: string): string {
+  return resolveStoragePath(storageRelFromUrl(url));
+}
+
 const CONTENT_TYPES: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",

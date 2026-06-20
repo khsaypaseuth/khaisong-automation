@@ -11,10 +11,8 @@ import {
 import { OpenAIImageProvider } from "./image/OpenAIImageProvider";
 import { NotImplementedTTSProvider, type TTSProvider } from "./tts/TTSProvider";
 import { GeminiTTSProvider } from "./tts/GeminiTTSProvider";
-import {
-  NotImplementedVideoRenderer,
-  type VideoRenderer,
-} from "./video/VideoRenderer";
+import { type VideoRenderer } from "./video/VideoRenderer";
+import { FFmpegVideoRenderer } from "./video/FFmpegVideoRenderer";
 import {
   NotImplementedSocialPoster,
   type SocialPlatform,
@@ -54,7 +52,7 @@ export function getTTSProvider(): TTSProvider {
 }
 
 export function getVideoRenderer(): VideoRenderer {
-  return new NotImplementedVideoRenderer();
+  return new FFmpegVideoRenderer();
 }
 
 export function getSocialPoster(platform: SocialPlatform): SocialPoster {

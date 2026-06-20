@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GenerateImagesButton } from "@/components/videos/generate-images-button";
 import { GenerateVoiceButton } from "@/components/videos/generate-voice-button";
+import { RenderVideoButton } from "@/components/videos/render-video-button";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,45 @@ export default async function VideoDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Final video</h2>
+          <RenderVideoButton
+            videoId={video.id}
+            status={video.status}
+            ready={
+              video.scenes.some((s) => s.imageUrl) &&
+              video.voiceAssets.length > 0
+            }
+            hasVideo={Boolean(video.videoUrl)}
+          />
+        </div>
+        {video.status === "RENDERING" && (
+          <div className="mb-3 rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Rendering the MP4 reel… this can take a couple of minutes.
+          </div>
+        )}
+        {video.videoUrl ? (
+          <Card>
+            <CardContent className="space-y-3 pt-6">
+              <video
+                controls
+                src={video.videoUrl}
+                poster={video.thumbnailUrl ?? undefined}
+                className="mx-auto aspect-[9/16] max-h-[70vh] rounded-md bg-black"
+              />
+              <Button variant="outline" size="sm" render={<a href={video.videoUrl} download />}>
+                Download MP4
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+            No rendered video yet. Generate images and voice first, then render.
+          </div>
+        )}
+      </section>
 
       <section>
         <div className="mb-3 flex items-center justify-between">

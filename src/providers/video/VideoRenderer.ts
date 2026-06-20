@@ -1,25 +1,27 @@
 // Phase 5 seam — FFmpeg rendering of images + voice + music into a 9:16 MP4.
+// Inputs are absolute disk paths (the service resolves storage URLs first).
 
 export type RenderScene = {
-  imageUrl: string;
-  overlayText?: string;
+  imagePath: string;
+  overlayText?: string | null;
   durationSeconds: number;
 };
 
 export type RenderInput = {
   scenes: RenderScene[];
-  voiceAudioUrl: string;
-  backgroundMusicUrl?: string;
-  logoUrl?: string;
-  outputPath: string;
+  voiceAudioPath: string;
+  backgroundMusicPath?: string | null;
+  logoPath?: string | null;
+  outputVideoPath: string;
+  outputThumbnailPath: string;
 };
 
 export type RenderResult = {
-  videoUrl: string;
-  thumbnailUrl: string;
   durationSeconds: number;
   resolution: string;
   fileSize: number;
+  /** The ffmpeg command line, persisted for debugging. */
+  command: string;
 };
 
 export interface VideoRenderer {

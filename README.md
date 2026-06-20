@@ -6,8 +6,9 @@ for Khaisong.com's procurement & freight forwarding service (China→Laos, Thail
 Pipeline (built phase by phase): **GPT script → AI images → Gemini TTS → FFmpeg render →
 admin approval → post**.
 
-> **Status: Phase 4 — Gemini TTS.** Phases 1–3 + voiceover generation from the
-> video script. See [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md) and the full spec in
+> **Status: Phase 5 — FFmpeg rendering.** Phases 1–4 + composing scene images,
+> overlay text, voiceover, music, and logo into a 1080×1920 MP4 reel. See
+> [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md) and the full spec in
 > [docs/khaisong-auto-video-automation-development-plan.md](docs/khaisong-auto-video-automation-development-plan.md).
 
 ## Script generation (Phase 2)
@@ -40,6 +41,16 @@ saved to storage, and recorded as a `VoiceAsset` — playable inline in the admi
 selection is per-language via `GEMINI_TTS_VOICE_<LANG>` env vars. Runs as a `generate-voice`
 job.
 
+## Rendering (Phase 5)
+
+Once a video has scene images **and** a voiceover, click **Render video**. FFmpeg
+normalises each image to 1080×1920, applies a slow zoom + fade per scene, overlays the
+scene text (if `FFMPEG_FONT_PATH` is set), concatenates the clips, mixes the voiceover
+with optional ducked background music (`DEFAULT_BACKGROUND_MUSIC_PATH`), overlays an
+optional logo (`DEFAULT_LOGO_PATH`), and exports an H.264/AAC MP4 + thumbnail. The result
+plays inline and is downloadable; the video moves to **Ready for review**. The exact
+ffmpeg command is saved to `api_logs` for debugging. Runs as a `render-video` job.
+
 ## Stack
 
 - **Next.js 16** (App Router) + React 19 + TypeScript — full-stack with API routes
@@ -52,6 +63,7 @@ job.
 
 - Node 22+, pnpm 10+
 - **Docker Desktop** (for Postgres + Redis)
+- **FFmpeg** on PATH (for Phase 5 rendering) — `brew install ffmpeg` / `apt install ffmpeg`
 
 ## Getting started
 
