@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GenerateImagesButton } from "@/components/videos/generate-images-button";
+import { GenerateVoiceButton } from "@/components/videos/generate-voice-button";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +65,40 @@ export default async function VideoDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Voiceover</h2>
+          <GenerateVoiceButton
+            videoId={video.id}
+            status={video.status}
+            hasScript={Boolean(video.voiceScript?.trim())}
+            hasVoice={video.voiceAssets.length > 0}
+          />
+        </div>
+        {video.status === "GENERATING_VOICE" && (
+          <div className="mb-3 rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Generating voiceover… this usually takes a few seconds.
+          </div>
+        )}
+        {video.voiceAssets[0]?.audioUrl ? (
+          <Card>
+            <CardContent className="space-y-2 pt-6">
+              <audio controls src={video.voiceAssets[0].audioUrl} className="w-full" />
+              <p className="text-xs text-muted-foreground">
+                Voice: {video.voiceAssets[0].voiceName ?? "—"}
+                {video.voiceAssets[0].durationSeconds
+                  ? ` · ${video.voiceAssets[0].durationSeconds}s`
+                  : ""}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+            No voiceover yet.
+          </div>
+        )}
+      </section>
 
       <section>
         <div className="mb-3 flex items-center justify-between">

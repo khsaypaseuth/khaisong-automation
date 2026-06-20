@@ -1,9 +1,11 @@
 import { QUEUE_NAMES, getQueue } from "@/lib/queue";
 import { generateCampaignScripts } from "@/server/campaigns/generation";
 import { generateVideoImages } from "@/server/videos/image-generation";
+import { generateVideoVoice } from "@/server/videos/voice-generation";
 
 export type GenerateScriptsJob = { campaignId: string };
 export type GenerateImagesJob = { videoPostId: string };
+export type GenerateVoiceJob = { videoPostId: string };
 
 /**
  * Runs jobs inline (in-process) when INLINE_JOBS=true or no REDIS_URL is set —
@@ -41,6 +43,21 @@ export async function dispatchGenerateImages(videoPostId: string): Promise<void>
   await getQueue(QUEUE_NAMES.generateImages).add(
     "generate",
     { videoPostId } satisfies GenerateImagesJob,
+    { attempts: 2, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: 100 },
+  );
+}
+
+export async function dispatchGenerateVoice(videoPostId: string): Promise<void> {
+  if (runInline()) {
+    void generateVideoVoice(videoPostId).catch((err) => {
+      console.error(`[inline] generateVideoVoice failed: ${videoPostId}`, err);
+    });
+    return;
+  }
+
+  await getQueue(QUEUE_NAMES.generateVoice).add(
+    "generate",
+    { videoPostId } satisfies GenerateVoiceJob,
     { attempts: 2, backoff: { type: "exponential", delay: 5000 }, removeOnComplete: 100 },
   );
 }

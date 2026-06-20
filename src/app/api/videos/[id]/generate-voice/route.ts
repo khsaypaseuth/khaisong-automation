@@ -1,7 +1,41 @@
-import { requireSession, notImplemented } from "@/lib/api";
+import { NextResponse } from "next/server";
+import { requireSession, notFound } from "@/lib/api";
+import { prisma } from "@/lib/db";
+import { dispatchGenerateVoice } from "@/server/jobs/dispatch";
 
-export async function POST() {
+type Params = { params: Promise<{ id: string }> };
+
+export async function POST(_req: Request, { params }: Params) {
   const auth = await requireSession();
   if ("response" in auth) return auth.response;
-  return notImplemented("Phase 4 — Gemini TTS");
+
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json(
+      { error: "GEMINI_API_KEY is not configured" },
+      { status: 503 },
+    );
+  }
+
+  const { id } = await params;
+  const video = await prisma.videoPost.findUnique({ where: { id } });
+  if (!video) return notFound("Video not found");
+
+  if (!video.voiceScript?.trim()) {
+    return NextResponse.json(
+      { error: "No voice script — generate scripts first" },
+      { status: 409 },
+    );
+  }
+  if (video.status === "GENERATING_VOICE") {
+    return NextResponse.json(
+      { error: "Voice generation already in progress" },
+      { status: 409 },
+    );
+  }
+
+  await dispatchGenerateVoice(id);
+  return NextResponse.json(
+    { ok: true, status: "GENERATING_VOICE" },
+    { status: 202 },
+  );
 }

@@ -18,6 +18,7 @@ export function getVideo(id: string) {
     include: {
       campaign: { select: { id: true, title: true, language: true } },
       scenes: { orderBy: { sceneNumber: "asc" } },
+      voiceAssets: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
 }

@@ -1,13 +1,15 @@
 // Phase 4 seam — text-to-speech voice generation (Gemini TTS).
+// Providers return raw audio bytes; the service persists them to storage.
 
 export type TTSOptions = {
-  language: "Lao" | "Thai" | "Chinese" | "English" | string;
+  language: string; // "Lao" | "Thai" | "Chinese" | "English" | ...
   voiceName?: string;
-  format?: "mp3" | "wav";
 };
 
 export type TTSResult = {
-  url: string;
+  data: Buffer;
+  format: "wav" | "mp3";
+  mimeType: string;
   durationSeconds: number;
   voiceName: string;
   provider: string;
@@ -19,6 +21,8 @@ export interface TTSProvider {
 
 export class NotImplementedTTSProvider implements TTSProvider {
   async generateSpeech(): Promise<never> {
-    throw new Error("TTSProvider not implemented (Phase 4)");
+    throw new Error(
+      "No TTS provider configured. Set GEMINI_API_KEY to enable voice generation (Phase 4).",
+    );
   }
 }

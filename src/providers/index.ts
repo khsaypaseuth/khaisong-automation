@@ -10,6 +10,7 @@ import {
 } from "./image/ImageGenerationProvider";
 import { OpenAIImageProvider } from "./image/OpenAIImageProvider";
 import { NotImplementedTTSProvider, type TTSProvider } from "./tts/TTSProvider";
+import { GeminiTTSProvider } from "./tts/GeminiTTSProvider";
 import {
   NotImplementedVideoRenderer,
   type VideoRenderer,
@@ -44,6 +45,11 @@ export function getImageProvider(): ImageGenerationProvider {
 }
 
 export function getTTSProvider(): TTSProvider {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    const model = process.env.GEMINI_TTS_MODEL || "gemini-2.5-flash-preview-tts";
+    return new GeminiTTSProvider(apiKey, model);
+  }
   return new NotImplementedTTSProvider();
 }
 

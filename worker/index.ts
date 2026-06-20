@@ -6,9 +6,11 @@ import { Worker, type ConnectionOptions } from "bullmq";
 import { QUEUE_NAMES, getRedisConnection } from "../src/lib/queue";
 import { generateCampaignScripts } from "../src/server/campaigns/generation";
 import { generateVideoImages } from "../src/server/videos/image-generation";
+import { generateVideoVoice } from "../src/server/videos/voice-generation";
 import type {
   GenerateScriptsJob,
   GenerateImagesJob,
+  GenerateVoiceJob,
 } from "../src/server/jobs/dispatch";
 
 async function main() {
@@ -47,9 +49,26 @@ async function main() {
     console.error(`[generate-images] failed ${job?.id}:`, err.message),
   );
 
+  const voiceWorker = new Worker<GenerateVoiceJob>(
+    QUEUE_NAMES.generateVoice,
+    async (job) => {
+      console.log(`[generate-voice] video ${job.data.videoPostId}`);
+      await generateVideoVoice(job.data.videoPostId);
+    },
+    { connection: connection as unknown as ConnectionOptions, concurrency: 2 },
+  );
+
+  voiceWorker.on("completed", (job) =>
+    console.log(`[generate-voice] done ${job.id}`),
+  );
+  voiceWorker.on("failed", (job, err) =>
+    console.error(`[generate-voice] failed ${job?.id}:`, err.message),
+  );
+
   console.log("Workers ready:", [
     QUEUE_NAMES.generateScripts,
     QUEUE_NAMES.generateImages,
+    QUEUE_NAMES.generateVoice,
   ]);
 }
 
