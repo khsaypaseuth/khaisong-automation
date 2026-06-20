@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CampaignActions } from "@/components/campaigns/campaign-actions";
+import { GenerateScriptsButton } from "@/components/campaigns/generate-scripts-button";
 import { VideoManager } from "@/components/videos/video-manager";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
@@ -64,9 +65,18 @@ export default async function CampaignDetailPage({
       </Card>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold tracking-tight">
-          Video posts
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Video posts</h2>
+          <GenerateScriptsButton
+            campaignId={campaign.id}
+            status={campaign.status}
+          />
+        </div>
+        {campaign.status === "GENERATING_SCRIPTS" && (
+          <div className="mb-4 rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Generating scripts and storyboards… this can take up to a minute.
+          </div>
+        )}
         <VideoManager
           campaignId={campaign.id}
           videos={campaign.videoPosts.map((v) => ({

@@ -6,10 +6,23 @@ for Khaisong.com's procurement & freight forwarding service (China→Laos, Thail
 Pipeline (built phase by phase): **GPT script → AI images → Gemini TTS → FFmpeg render →
 admin approval → post**.
 
-> **Status: Phase 1 — Foundation.** AI is intentionally not wired in yet. This phase
-> delivers the data model, admin UI, auth, and the provider-adapter seams that later
-> phases plug into. See [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md) and the full spec in
+> **Status: Phase 2 — GPT script generation.** Phase 1 foundation + OpenAI-powered
+> script/caption/storyboard generation. See [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md)
+> and the full spec in
 > [docs/khaisong-auto-video-automation-development-plan.md](docs/khaisong-auto-video-automation-development-plan.md).
+
+## Script generation (Phase 2)
+
+From a campaign detail page, click **Generate scripts**. The configured text provider
+(OpenAI, `OPENAI_API_KEY` + `OPENAI_MODEL`) produces video plans — title, hook, voice
+script, 5–8 storyboard scenes, captions, hashtags — which are saved as video posts +
+storyboard scenes. Raw model output is logged to `api_logs` for debugging.
+
+Generation runs as a background job:
+
+- **Local dev:** set `INLINE_JOBS="true"` to run in-process (no worker/Redis needed).
+- **With a worker:** leave `INLINE_JOBS` empty, run Redis, and start `pnpm worker`
+  alongside `pnpm dev`. The route enqueues a BullMQ job the worker processes.
 
 ## Stack
 

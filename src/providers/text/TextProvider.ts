@@ -1,25 +1,7 @@
-// Phase 2 seam — script/caption generation (e.g. OpenAI GPT-5 Mini).
+// Phase 2 seam — script/caption/storyboard generation (e.g. OpenAI GPT-5 Mini).
 // Implementations live behind this interface so the provider stays swappable.
 
-export type GeneratedScene = {
-  sceneNumber: number;
-  sceneTitle: string;
-  sceneDescription: string;
-  imagePrompt: string;
-  overlayText: string;
-  durationSeconds: number;
-};
-
-export type GeneratedVideoPlan = {
-  title: string;
-  hook: string;
-  voiceScript: string;
-  storyboard: GeneratedScene[];
-  captionFacebook: string;
-  captionTiktok: string;
-  hashtags: string[];
-  suggestedPostingDatetime: string;
-};
+import type { GeneratedCampaign } from "@/lib/validations/generation";
 
 export type CampaignGenerationInput = {
   goalPrompt: string;
@@ -29,14 +11,24 @@ export type CampaignGenerationInput = {
   targetAudience?: string | null;
 };
 
+export type CampaignGenerationOutput = {
+  result: GeneratedCampaign;
+  /** Raw model text, persisted to api_logs for debugging. */
+  rawResponse: string;
+  provider: string;
+  model: string;
+};
+
 export interface TextProvider {
   generateCampaignPlans(
     input: CampaignGenerationInput,
-  ): Promise<{ campaignTitle: string; videos: GeneratedVideoPlan[] }>;
+  ): Promise<CampaignGenerationOutput>;
 }
 
 export class NotImplementedTextProvider implements TextProvider {
   async generateCampaignPlans(): Promise<never> {
-    throw new Error("TextProvider not implemented (Phase 2)");
+    throw new Error(
+      "No text provider configured. Set OPENAI_API_KEY to enable script generation (Phase 2).",
+    );
   }
 }

@@ -3,6 +3,7 @@
 // without touching call sites.
 
 import { NotImplementedTextProvider, type TextProvider } from "./text/TextProvider";
+import { OpenAITextProvider } from "./text/OpenAITextProvider";
 import {
   NotImplementedImageProvider,
   type ImageGenerationProvider,
@@ -19,6 +20,11 @@ import {
 } from "./social/SocialPoster";
 
 export function getTextProvider(): TextProvider {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (apiKey) {
+    const model = process.env.OPENAI_MODEL || "gpt-5-mini";
+    return new OpenAITextProvider(apiKey, model);
+  }
   return new NotImplementedTextProvider();
 }
 

@@ -1,14 +1,33 @@
-// BullMQ worker entrypoint — scaffold only.
-// Phase 1 registers no processors. From Phase 2 onward, register Workers here
-// (generate-scripts, generate-images, generate-voice, render-video,
-// post-to-social) against the queues defined in src/lib/queue.ts.
+// BullMQ worker entrypoint. Run with `pnpm worker` alongside Redis.
+// Phase 2 registers the generate-scripts processor. Later phases add
+// generate-images, generate-voice, render-video, post-to-social.
 
-import { QUEUE_NAMES } from "../src/lib/queue";
+import { Worker, type ConnectionOptions } from "bullmq";
+import { QUEUE_NAMES, getRedisConnection } from "../src/lib/queue";
+import { generateCampaignScripts } from "../src/server/campaigns/generation";
+import type { GenerateScriptsJob } from "../src/server/jobs/dispatch";
 
 async function main() {
+  const connection = getRedisConnection();
   console.log("Khaisong worker starting…");
-  console.log("Registered queues (no processors yet):", Object.values(QUEUE_NAMES));
-  console.log("Phase 1: nothing to process. Add Workers in Phase 2+.");
+
+  const scriptsWorker = new Worker<GenerateScriptsJob>(
+    QUEUE_NAMES.generateScripts,
+    async (job) => {
+      console.log(`[generate-scripts] campaign ${job.data.campaignId}`);
+      await generateCampaignScripts(job.data.campaignId);
+    },
+    { connection: connection as unknown as ConnectionOptions, concurrency: 2 },
+  );
+
+  scriptsWorker.on("completed", (job) =>
+    console.log(`[generate-scripts] done ${job.id}`),
+  );
+  scriptsWorker.on("failed", (job, err) =>
+    console.error(`[generate-scripts] failed ${job?.id}:`, err.message),
+  );
+
+  console.log("Workers ready:", [QUEUE_NAMES.generateScripts]);
 }
 
 main().catch((err) => {
