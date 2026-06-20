@@ -5,7 +5,11 @@
 import { Worker, type ConnectionOptions } from "bullmq";
 import { QUEUE_NAMES, getRedisConnection } from "../src/lib/queue";
 import { generateCampaignScripts } from "../src/server/campaigns/generation";
-import type { GenerateScriptsJob } from "../src/server/jobs/dispatch";
+import { generateVideoImages } from "../src/server/videos/image-generation";
+import type {
+  GenerateScriptsJob,
+  GenerateImagesJob,
+} from "../src/server/jobs/dispatch";
 
 async function main() {
   const connection = getRedisConnection();
@@ -27,7 +31,26 @@ async function main() {
     console.error(`[generate-scripts] failed ${job?.id}:`, err.message),
   );
 
-  console.log("Workers ready:", [QUEUE_NAMES.generateScripts]);
+  const imagesWorker = new Worker<GenerateImagesJob>(
+    QUEUE_NAMES.generateImages,
+    async (job) => {
+      console.log(`[generate-images] video ${job.data.videoPostId}`);
+      await generateVideoImages(job.data.videoPostId);
+    },
+    { connection: connection as unknown as ConnectionOptions, concurrency: 2 },
+  );
+
+  imagesWorker.on("completed", (job) =>
+    console.log(`[generate-images] done ${job.id}`),
+  );
+  imagesWorker.on("failed", (job, err) =>
+    console.error(`[generate-images] failed ${job?.id}:`, err.message),
+  );
+
+  console.log("Workers ready:", [
+    QUEUE_NAMES.generateScripts,
+    QUEUE_NAMES.generateImages,
+  ]);
 }
 
 main().catch((err) => {

@@ -6,8 +6,8 @@ for Khaisong.com's procurement & freight forwarding service (China→Laos, Thail
 Pipeline (built phase by phase): **GPT script → AI images → Gemini TTS → FFmpeg render →
 admin approval → post**.
 
-> **Status: Phase 2 — GPT script generation.** Phase 1 foundation + OpenAI-powered
-> script/caption/storyboard generation. See [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md)
+> **Status: Phase 3 — image generation.** Phases 1–2 + per-scene AI image
+> generation saved to local storage. See [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md)
 > and the full spec in
 > [docs/khaisong-auto-video-automation-development-plan.md](docs/khaisong-auto-video-automation-development-plan.md).
 
@@ -23,6 +23,15 @@ Generation runs as a background job:
 - **Local dev:** set `INLINE_JOBS="true"` to run in-process (no worker/Redis needed).
 - **With a worker:** leave `INLINE_JOBS` empty, run Redis, and start `pnpm worker`
   alongside `pnpm dev`. The route enqueues a BullMQ job the worker processes.
+
+## Image generation (Phase 3)
+
+On a **video detail page**, click **Generate images**. One image per storyboard scene
+is produced by the configured image provider (`IMAGE_PROVIDER`, default OpenAI
+`gpt-image-1`), with a brand-consistent style suffix and **no text in the image**
+(overlays come later via FFmpeg). Images are saved under `STORAGE_PATH` and served by
+the auth-guarded `/api/files/[...path]` route. Runs as a `generate-images` job (same
+INLINE_JOBS / worker model as scripts).
 
 ## Stack
 

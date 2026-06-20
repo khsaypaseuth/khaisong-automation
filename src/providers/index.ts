@@ -8,6 +8,7 @@ import {
   NotImplementedImageProvider,
   type ImageGenerationProvider,
 } from "./image/ImageGenerationProvider";
+import { OpenAIImageProvider } from "./image/OpenAIImageProvider";
 import { NotImplementedTTSProvider, type TTSProvider } from "./tts/TTSProvider";
 import {
   NotImplementedVideoRenderer,
@@ -29,6 +30,16 @@ export function getTextProvider(): TextProvider {
 }
 
 export function getImageProvider(): ImageGenerationProvider {
+  // IMAGE_PROVIDER selects the implementation; defaults to OpenAI when a key
+  // is available. Add Gemini/Nano Banana/Magnific adapters here as needed.
+  const provider = (process.env.IMAGE_PROVIDER || "openai").toLowerCase();
+  if (provider === "openai") {
+    const apiKey = process.env.IMAGE_PROVIDER_API_KEY || process.env.OPENAI_API_KEY;
+    if (apiKey) {
+      const model = process.env.IMAGE_PROVIDER_MODEL || "gpt-image-1";
+      return new OpenAIImageProvider(apiKey, model);
+    }
+  }
   return new NotImplementedImageProvider();
 }
 

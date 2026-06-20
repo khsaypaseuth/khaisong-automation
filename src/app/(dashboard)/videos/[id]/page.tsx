@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { GenerateImagesButton } from "@/components/videos/generate-images-button";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -65,17 +66,42 @@ export default async function VideoDetailPage({
       </Card>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold tracking-tight">Storyboard</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold tracking-tight">Storyboard</h2>
+          {video.scenes.length > 0 && (
+            <GenerateImagesButton
+              videoId={video.id}
+              status={video.status}
+              hasScenes={video.scenes.length > 0}
+            />
+          )}
+        </div>
+        {video.status === "GENERATING_IMAGES" && (
+          <div className="mb-3 rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Generating images for each scene… this can take a minute or two.
+          </div>
+        )}
         {video.scenes.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-            No storyboard scenes yet. Scenes, images, and voice are generated in
-            later phases.
+            No storyboard scenes yet. Generate scripts on the campaign first.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {video.scenes.map((s) => (
-              <Card key={s.id}>
-                <CardContent className="space-y-1 pt-6 text-sm">
+              <Card key={s.id} className="overflow-hidden pt-0">
+                {s.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={s.imageUrl}
+                    alt={`Scene ${s.sceneNumber}`}
+                    className="aspect-[9/16] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[9/16] w-full items-center justify-center bg-muted text-xs text-muted-foreground">
+                    No image
+                  </div>
+                )}
+                <CardContent className="space-y-1 pb-4 text-sm">
                   <div className="font-medium">
                     Scene {s.sceneNumber}
                     {s.sceneTitle ? ` · ${s.sceneTitle}` : ""}
