@@ -3,11 +3,14 @@ import { generateCampaignScripts } from "@/server/campaigns/generation";
 import { generateVideoImages } from "@/server/videos/image-generation";
 import { generateVideoVoice } from "@/server/videos/voice-generation";
 import { renderVideo } from "@/server/videos/render";
+import { postToSocial } from "@/server/videos/social-posting";
+import type { Platform } from "@prisma/client";
 
 export type GenerateScriptsJob = { campaignId: string };
 export type GenerateImagesJob = { videoPostId: string };
 export type GenerateVoiceJob = { videoPostId: string };
 export type RenderVideoJob = { videoPostId: string };
+export type PostToSocialJob = { videoPostId: string; platform: Platform };
 
 /**
  * Runs jobs inline (in-process) when INLINE_JOBS=true or no REDIS_URL is set —
@@ -76,5 +79,23 @@ export async function dispatchRenderVideo(videoPostId: string): Promise<void> {
     "render",
     { videoPostId } satisfies RenderVideoJob,
     { attempts: 1, removeOnComplete: 50 },
+  );
+}
+
+export async function dispatchPostToSocial(
+  videoPostId: string,
+  platform: Platform,
+): Promise<void> {
+  if (runInline()) {
+    void postToSocial(videoPostId, platform).catch((err) => {
+      console.error(`[inline] postToSocial failed: ${videoPostId}/${platform}`, err);
+    });
+    return;
+  }
+
+  await getQueue(QUEUE_NAMES.postToSocial).add(
+    "post",
+    { videoPostId, platform } satisfies PostToSocialJob,
+    { attempts: 3, backoff: { type: "exponential", delay: 30_000 }, removeOnComplete: 100 },
   );
 }

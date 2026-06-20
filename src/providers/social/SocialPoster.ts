@@ -3,9 +3,9 @@
 export type SocialPlatform = "FACEBOOK" | "TIKTOK";
 
 export type PostInput = {
-  videoUrl: string;
+  /** Absolute disk path to the rendered MP4. */
+  videoPath: string;
   caption: string;
-  scheduledAt?: Date;
 };
 
 export type PostResult = {
@@ -21,8 +21,6 @@ export interface SocialPoster {
 export class NotImplementedSocialPoster implements SocialPoster {
   constructor(public readonly platform: SocialPlatform) {}
   async post(): Promise<never> {
-    throw new Error(
-      `SocialPoster (${this.platform}) not implemented (Phase 8)`,
-    );
+    throw new Error(`SocialPoster (${this.platform}) not configured`);
   }
 }

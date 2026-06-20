@@ -6,8 +6,8 @@ for Khaisong.com's procurement & freight forwarding service (China→Laos, Thail
 Pipeline (built phase by phase): **GPT script → AI images → Gemini TTS → FFmpeg render →
 admin approval → post**.
 
-> **Status: Phase 7 — manual posting MVP.** Phases 1–6 + download the MP4, copy
-> per-platform captions, and mark posts as published by hand. See
+> **Status: Phase 8 — API posting.** All phases complete: Meta Graph + TikTok
+> Content Posting API, with optional scheduled auto-posting and retry. See
 > [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md) and the full spec in
 > [docs/khaisong-auto-video-automation-development-plan.md](docs/khaisong-auto-video-automation-development-plan.md).
 
@@ -62,8 +62,25 @@ videos may be posted (Phases 7–8).
 
 Once approved, the **Manual posting** panel on the video page lets the admin download the
 MP4, copy the Facebook/TikTok caption to the clipboard, and **Mark posted** per platform.
-Each manual post is recorded in `posting_logs` and moves the video to **Posted**. API-based
-auto-posting (Meta Graph + TikTok) is Phase 8.
+Each manual post is recorded in `posting_logs` and moves the video to **Posted**.
+
+## API posting (Phase 8)
+
+The Manual posting panel also offers **Post via API** per platform:
+
+- **Facebook** — uploads the MP4 to a Page via the Meta Graph API
+  (`FACEBOOK_PAGE_ID` + `FACEBOOK_ACCESS_TOKEN`, configurable in Settings too).
+- **TikTok** — TikTok Content Posting API direct post (`TIKTOK_ACCESS_TOKEN`,
+  `TIKTOK_PRIVACY_LEVEL`).
+
+Posting runs as a retryable `post-to-social` job; results (and failures) are recorded in
+`posting_logs`. Set `AUTO_POST_ENABLED="true"` and run `pnpm worker` to enable the
+scheduler, which posts approved videos to their target platforms at the scheduled
+date/time. Only approved, rendered videos are ever posted.
+
+> ⚠️ Both posting integrations follow the documented happy-path flows but are **untested
+> against the live APIs** — verify scopes/permissions (Meta `pages_manage_posts`, TikTok
+> content.posting) and token freshness before relying on auto-post.
 
 ## Stack
 

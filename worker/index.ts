@@ -8,11 +8,14 @@ import { generateCampaignScripts } from "../src/server/campaigns/generation";
 import { generateVideoImages } from "../src/server/videos/image-generation";
 import { generateVideoVoice } from "../src/server/videos/voice-generation";
 import { renderVideo } from "../src/server/videos/render";
+import { postToSocial } from "../src/server/videos/social-posting";
+import { runScheduledPosting } from "../src/server/jobs/scheduler";
 import type {
   GenerateScriptsJob,
   GenerateImagesJob,
   GenerateVoiceJob,
   RenderVideoJob,
+  PostToSocialJob,
 } from "../src/server/jobs/dispatch";
 
 async function main() {
@@ -83,12 +86,46 @@ async function main() {
     console.error(`[render-video] failed ${job?.id}:`, err.message),
   );
 
+  const postWorker = new Worker<PostToSocialJob>(
+    QUEUE_NAMES.postToSocial,
+    async (job) => {
+      console.log(
+        `[post-to-social] ${job.data.platform} video ${job.data.videoPostId}`,
+      );
+      await postToSocial(job.data.videoPostId, job.data.platform);
+    },
+    { connection: connection as unknown as ConnectionOptions, concurrency: 2 },
+  );
+
+  postWorker.on("completed", (job) =>
+    console.log(`[post-to-social] done ${job.id}`),
+  );
+  postWorker.on("failed", (job, err) =>
+    console.error(`[post-to-social] failed ${job?.id}:`, err.message),
+  );
+
   console.log("Workers ready:", [
     QUEUE_NAMES.generateScripts,
     QUEUE_NAMES.generateImages,
     QUEUE_NAMES.generateVoice,
     QUEUE_NAMES.renderVideo,
+    QUEUE_NAMES.postToSocial,
   ]);
+
+  // Scheduled auto-posting (opt-in). Checks every minute for due videos.
+  if (process.env.AUTO_POST_ENABLED === "true") {
+    console.log("Auto-posting scheduler enabled (every 60s)");
+    const tick = async () => {
+      try {
+        const n = await runScheduledPosting();
+        if (n > 0) console.log(`[scheduler] dispatched ${n} post(s)`);
+      } catch (err) {
+        console.error("[scheduler] error:", err);
+      }
+    };
+    void tick();
+    setInterval(() => void tick(), 60_000);
+  }
 }
 
 main().catch((err) => {

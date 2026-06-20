@@ -42,6 +42,25 @@ export function PostingPanel({
     }
   }
 
+  async function postViaApi(platform: string) {
+    setBusy(platform);
+    try {
+      const slug = platform.toLowerCase();
+      const res = await fetch(`/api/videos/${videoId}/post/${slug}`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? `Failed to post to ${PLATFORM_LABELS[platform]}`);
+        return;
+      }
+      toast.success(`Posting to ${PLATFORM_LABELS[platform]}…`);
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function markPosted(platform: string) {
     setBusy(platform);
     try {
@@ -104,6 +123,14 @@ export function PostingPanel({
                         onClick={() => copyCaption(platform)}
                       >
                         Copy caption
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        disabled={busy === platform || posted}
+                        onClick={() => postViaApi(platform)}
+                      >
+                        Post via API
                       </Button>
                       <Button
                         size="sm"
