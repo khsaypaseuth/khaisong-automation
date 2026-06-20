@@ -1,0 +1,222 @@
+// Khaisong Auto Video Content Automation — full data model.
+// Phase 1 gives UI to: User, Campaign, VideoPost, StoryboardScene, Setting.
+// The remaining tables are modeled now so later phases don't migrate-churn.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  ADMIN
+  REVIEWER
+  STAFF
+}
+
+enum Platform {
+  FACEBOOK
+  TIKTOK
+}
+
+enum CampaignStatus {
+  DRAFT
+  GENERATING_SCRIPTS
+  SCRIPTS_GENERATED
+  GENERATING_ASSETS
+  RENDERING_VIDEOS
+  READY_FOR_REVIEW
+  APPROVED
+  COMPLETED
+  FAILED
+}
+
+enum VideoPostStatus {
+  DRAFT
+  SCRIPT_GENERATED
+  IMAGES_GENERATED
+  VOICE_GENERATED
+  VIDEO_RENDERED
+  READY_FOR_REVIEW
+  APPROVED
+  SCHEDULED
+  POSTED
+  FAILED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AssetStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum PostingStatus {
+  PENDING
+  POSTED
+  FAILED
+}
+
+// ---------- Models ----------
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         Role       @default(ADMIN)
+  campaigns    Campaign[]
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Campaign {
+  id             String         @id @default(cuid())
+  title          String
+  goalPrompt     String         @map("goal_prompt")
+  postsPerDay    Int            @map("posts_per_day")
+  numberOfDays   Int            @map("number_of_days")
+  totalPosts     Int            @map("total_posts")
+  language       String         @default("Lao")
+  tone           String         @default("Helpful, trustworthy, professional")
+  targetAudience String?        @map("target_audience")
+  platforms      Platform[]
+  status         CampaignStatus @default(DRAFT)
+  createdById    String?        @map("created_by")
+  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  videoPosts     VideoPost[]
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@map("campaigns")
+}
+
+model VideoPost {
+  id              String           @id @default(cuid())
+  campaignId      String           @map("campaign_id")
+  campaign        Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  title           String
+  hook            String?
+  scriptText      String?          @map("script_text")
+  voiceScript     String?          @map("voice_script")
+  captionFacebook String?          @map("caption_facebook")
+  captionTiktok   String?          @map("caption_tiktok")
+  hashtags        String[]
+  targetPlatforms Platform[]       @map("target_platforms")
+  scheduledDate   DateTime?        @map("scheduled_date")
+  scheduledTime   String?          @map("scheduled_time")
+  status          VideoPostStatus  @default(DRAFT)
+  approvalStatus  ApprovalStatus   @default(PENDING) @map("approval_status")
+  videoUrl        String?          @map("video_url")
+  thumbnailUrl    String?          @map("thumbnail_url")
+  scenes          StoryboardScene[]
+  voiceAssets     VoiceAsset[]
+  videoAssets     VideoAsset[]
+  postingLogs     PostingLog[]
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  @@index([campaignId])
+  @@map("video_posts")
+}
+
+model StoryboardScene {
+  id               String    @id @default(cuid())
+  videoPostId      String    @map("video_post_id")
+  videoPost        VideoPost @relation(fields: [videoPostId], references: [id], onDelete: Cascade)
+  sceneNumber      Int       @map("scene_number")
+  sceneTitle       String?   @map("scene_title")
+  sceneDescription String?   @map("scene_description")
+  imagePrompt      String?   @map("image_prompt")
+  overlayText      String?   @map("overlay_text")
+  durationSeconds  Int       @default(5) @map("duration_seconds")
+  imageUrl         String?   @map("image_url")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([videoPostId])
+  @@map("storyboard_scenes")
+}
+
+model VoiceAsset {
+  id              String      @id @default(cuid())
+  videoPostId     String      @map("video_post_id")
+  videoPost       VideoPost   @relation(fields: [videoPostId], references: [id], onDelete: Cascade)
+  provider        String?
+  voiceName       String?     @map("voice_name")
+  scriptText      String?     @map("script_text")
+  audioUrl        String?     @map("audio_url")
+  durationSeconds Int?        @map("duration_seconds")
+  status          AssetStatus @default(PENDING)
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  @@index([videoPostId])
+  @@map("voice_assets")
+}
+
+model VideoAsset {
+  id              String      @id @default(cuid())
+  videoPostId     String      @map("video_post_id")
+  videoPost       VideoPost   @relation(fields: [videoPostId], references: [id], onDelete: Cascade)
+  videoUrl        String?     @map("video_url")
+  format          String?
+  resolution      String?
+  durationSeconds Int?        @map("duration_seconds")
+  fileSize        Int?        @map("file_size")
+  status          AssetStatus @default(PENDING)
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  @@index([videoPostId])
+  @@map("video_assets")
+}
+
+model ApiLog {
+  id              String   @id @default(cuid())
+  provider        String
+  endpoint        String?
+  requestPayload  Json?    @map("request_payload")
+  responsePayload Json?    @map("response_payload")
+  status          String?
+  errorMessage    String?  @map("error_message")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("api_logs")
+}
+
+model PostingLog {
+  id             String        @id @default(cuid())
+  videoPostId    String        @map("video_post_id")
+  videoPost      VideoPost     @relation(fields: [videoPostId], references: [id], onDelete: Cascade)
+  platform       Platform
+  platformPostId String?       @map("platform_post_id")
+  status         PostingStatus @default(PENDING)
+  errorMessage   String?       @map("error_message")
+  postedAt       DateTime?     @map("posted_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  @@index([videoPostId])
+  @@map("posting_logs")
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}

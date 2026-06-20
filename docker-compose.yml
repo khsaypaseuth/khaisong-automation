@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: khaisong-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: khaisong
+      POSTGRES_PASSWORD: khaisong
+      POSTGRES_DB: khaisong
+    ports:
+      - "5432:5432"
+    volumes:
+      - khaisong_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U khaisong"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: khaisong-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - khaisong_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  khaisong_pgdata:
+  khaisong_redisdata:
