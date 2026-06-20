@@ -9,6 +9,7 @@ import { GenerateImagesButton } from "@/components/videos/generate-images-button
 import { GenerateVoiceButton } from "@/components/videos/generate-voice-button";
 import { RenderVideoButton } from "@/components/videos/render-video-button";
 import { ReviewPanel } from "@/components/videos/review-panel";
+import { PostingPanel } from "@/components/videos/posting-panel";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,20 @@ export default async function VideoDetailPage({
             : "",
           scheduledTime: video.scheduledTime ?? "",
         }}
+      />
+
+      <PostingPanel
+        videoId={video.id}
+        approved={video.approvalStatus === "APPROVED"}
+        videoUrl={video.videoUrl}
+        platforms={video.targetPlatforms}
+        captions={{
+          FACEBOOK: video.captionFacebook ?? "",
+          TIKTOK: video.captionTiktok ?? "",
+        }}
+        postedPlatforms={video.postingLogs
+          .filter((l) => l.status === "POSTED")
+          .map((l) => l.platform)}
       />
 
       <section>

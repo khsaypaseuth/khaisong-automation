@@ -6,8 +6,8 @@ for Khaisong.com's procurement & freight forwarding service (China→Laos, Thail
 Pipeline (built phase by phase): **GPT script → AI images → Gemini TTS → FFmpeg render →
 admin approval → post**.
 
-> **Status: Phase 6 — approval workflow.** Phases 1–5 + a review page to edit
-> captions/hashtags/schedule and approve or reject videos before posting. See
+> **Status: Phase 7 — manual posting MVP.** Phases 1–6 + download the MP4, copy
+> per-platform captions, and mark posts as published by hand. See
 > [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md) and the full spec in
 > [docs/khaisong-auto-video-automation-development-plan.md](docs/khaisong-auto-video-automation-development-plan.md).
 
@@ -57,6 +57,13 @@ The video detail page doubles as the review page. Admins can edit the Facebook/T
 captions, hashtags, and scheduled date/time, then **Approve** (only once rendered) or
 **Reject**. Approval is also available inline on the Content Calendar. Only approved
 videos may be posted (Phases 7–8).
+
+## Manual posting (Phase 7)
+
+Once approved, the **Manual posting** panel on the video page lets the admin download the
+MP4, copy the Facebook/TikTok caption to the clipboard, and **Mark posted** per platform.
+Each manual post is recorded in `posting_logs` and moves the video to **Posted**. API-based
+auto-posting (Meta Graph + TikTok) is Phase 8.
 
 ## Stack
 
