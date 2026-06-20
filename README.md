@@ -6,8 +6,8 @@ for Khaisong.com's procurement & freight forwarding service (China→Laos, Thail
 Pipeline (built phase by phase): **GPT script → AI images → Gemini TTS → FFmpeg render →
 admin approval → post**.
 
-> **Status: Phase 5 — FFmpeg rendering.** Phases 1–4 + composing scene images,
-> overlay text, voiceover, music, and logo into a 1080×1920 MP4 reel. See
+> **Status: Phase 6 — approval workflow.** Phases 1–5 + a review page to edit
+> captions/hashtags/schedule and approve or reject videos before posting. See
 > [docs/PHASE-1-PLAN.md](docs/PHASE-1-PLAN.md) and the full spec in
 > [docs/khaisong-auto-video-automation-development-plan.md](docs/khaisong-auto-video-automation-development-plan.md).
 
@@ -50,6 +50,13 @@ with optional ducked background music (`DEFAULT_BACKGROUND_MUSIC_PATH`), overlay
 optional logo (`DEFAULT_LOGO_PATH`), and exports an H.264/AAC MP4 + thumbnail. The result
 plays inline and is downloadable; the video moves to **Ready for review**. The exact
 ffmpeg command is saved to `api_logs` for debugging. Runs as a `render-video` job.
+
+## Review &amp; approval (Phase 6)
+
+The video detail page doubles as the review page. Admins can edit the Facebook/TikTok
+captions, hashtags, and scheduled date/time, then **Approve** (only once rendered) or
+**Reject**. Approval is also available inline on the Content Calendar. Only approved
+videos may be posted (Phases 7–8).
 
 ## Stack
 

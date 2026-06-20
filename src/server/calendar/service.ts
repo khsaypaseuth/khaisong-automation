@@ -11,6 +11,7 @@ export function listCalendarEntries() {
       scheduledDate: true,
       scheduledTime: true,
       targetPlatforms: true,
+      videoUrl: true,
       captionFacebook: true,
       captionTiktok: true,
       campaign: { select: { id: true, title: true } },

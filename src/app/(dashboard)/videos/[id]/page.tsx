@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GenerateImagesButton } from "@/components/videos/generate-images-button";
 import { GenerateVoiceButton } from "@/components/videos/generate-voice-button";
 import { RenderVideoButton } from "@/components/videos/render-video-button";
+import { ReviewPanel } from "@/components/videos/review-panel";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,21 @@ export default async function VideoDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <ReviewPanel
+        videoId={video.id}
+        approvalStatus={video.approvalStatus}
+        hasVideo={Boolean(video.videoUrl)}
+        initial={{
+          captionFacebook: video.captionFacebook ?? "",
+          captionTiktok: video.captionTiktok ?? "",
+          hashtags: video.hashtags.join(" "),
+          scheduledDate: video.scheduledDate
+            ? new Date(video.scheduledDate).toISOString().slice(0, 10)
+            : "",
+          scheduledTime: video.scheduledTime ?? "",
+        }}
+      />
 
       <section>
         <div className="mb-3 flex items-center justify-between">

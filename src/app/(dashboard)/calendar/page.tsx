@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CalendarRowActions } from "@/components/calendar/row-actions";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export default async function CalendarPage() {
                 <TableHead>Platforms</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Approval</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -84,6 +86,13 @@ export default async function CalendarPage() {
                     <Badge variant={statusVariant(e.approvalStatus)}>
                       {titleCase(e.approvalStatus)}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <CalendarRowActions
+                      videoId={e.id}
+                      approvalStatus={e.approvalStatus}
+                      hasVideo={Boolean(e.videoUrl)}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
