@@ -3,6 +3,8 @@ import { Resvg } from "@resvg/resvg-js";
 const WIDTH = 1080;
 const HEIGHT = 1920;
 const FONT_SIZE = 52;
+// Khaisong brand red for the caption band.
+const BRAND_COLOR = process.env.BRAND_COLOR || "#dd0e1c";
 const LINE_HEIGHT = 70;
 const MAX_CHARS_PER_LINE = 22;
 const BOTTOM_MARGIN = 320; // distance of the text block bottom from the frame bottom
@@ -58,7 +60,7 @@ function buildSvg(lines: string[], fontFamily: string): string {
     .join("");
 
   return `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <rect x="${boxX}" y="${boxTop}" width="${boxW}" height="${boxHeight}" rx="24" fill="black" fill-opacity="0.5"/>
+  <rect x="${boxX}" y="${boxTop}" width="${boxW}" height="${boxHeight}" rx="24" fill="${BRAND_COLOR}" fill-opacity="0.9"/>
   <text text-anchor="middle" font-family="${escapeXml(fontFamily)}" font-size="${FONT_SIZE}" font-weight="700" fill="white">${tspans}</text>
 </svg>`;
 }
