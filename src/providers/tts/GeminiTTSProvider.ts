@@ -22,32 +22,52 @@ export class GeminiTTSProvider implements TTSProvider {
   async generateSpeech(text: string, options: TTSOptions): Promise<TTSResult> {
     const voiceName = options.voiceName || voiceForLanguage(options.language);
 
-    const response = await this.client.models.generateContent({
-      model: this.model,
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
-        },
-      },
-    });
+    // Gemini TTS (preview) intermittently returns finishReason OTHER with no
+    // audio, or a transient 429/400. Retry a few times with backoff.
+    const maxAttempts = 5;
+    let lastError = "no audio data";
 
-    const part = response.candidates?.[0]?.content?.parts?.[0];
-    const base64 = part?.inlineData?.data;
-    if (!base64) throw new Error("Gemini TTS returned no audio data");
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await this.client.models.generateContent({
+          model: this.model,
+          contents: [{ parts: [{ text }] }],
+          config: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+            },
+          },
+        });
 
-    const pcm = Buffer.from(base64, "base64");
-    const sampleRate = parsePcmRate(part.inlineData?.mimeType ?? "");
-    const format = { sampleRate, channels: 1, bitsPerSample: 16 };
+        const part = response.candidates?.[0]?.content?.parts?.find(
+          (p) => p.inlineData?.data,
+        );
+        const base64 = part?.inlineData?.data;
 
-    return {
-      data: pcmToWav(pcm, format),
-      format: "wav",
-      mimeType: "audio/wav",
-      durationSeconds: Math.round(pcmDurationSeconds(pcm, format)),
-      voiceName,
-      provider: "gemini",
-    };
+        if (base64) {
+          const pcm = Buffer.from(base64, "base64");
+          const sampleRate = parsePcmRate(part.inlineData?.mimeType ?? "");
+          const format = { sampleRate, channels: 1, bitsPerSample: 16 };
+          return {
+            data: pcmToWav(pcm, format),
+            format: "wav",
+            mimeType: "audio/wav",
+            durationSeconds: Math.round(pcmDurationSeconds(pcm, format)),
+            voiceName,
+            provider: "gemini",
+          };
+        }
+        lastError = `empty audio (finishReason: ${response.candidates?.[0]?.finishReason ?? "unknown"})`;
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 1500 * attempt));
+      }
+    }
+
+    throw new Error(`Gemini TTS failed after ${maxAttempts} attempts: ${lastError}`);
   }
 }
