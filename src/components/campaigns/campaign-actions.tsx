@@ -43,6 +43,7 @@ export function CampaignActions({ campaignId }: { campaignId: string }) {
     <div className="flex gap-2">
       <Button
         variant="outline"
+        nativeButton={false}
         render={<Link href={`/campaigns/${campaignId}/edit`} />}
       >
         Edit

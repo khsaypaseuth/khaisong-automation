@@ -24,7 +24,9 @@ export default async function CampaignsPage() {
         title="Campaigns"
         description="Create and manage video content campaigns."
         action={
-          <Button render={<Link href="/campaigns/new" />}>New campaign</Button>
+          <Button nativeButton={false} render={<Link href="/campaigns/new" />}>
+            New campaign
+          </Button>
         }
       />
 

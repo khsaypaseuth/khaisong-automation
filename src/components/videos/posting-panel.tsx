@@ -97,6 +97,7 @@ export function PostingPanel({
               <Button
                 variant="outline"
                 size="sm"
+                nativeButton={false}
                 render={<a href={videoUrl} download />}
               >
                 Download MP4

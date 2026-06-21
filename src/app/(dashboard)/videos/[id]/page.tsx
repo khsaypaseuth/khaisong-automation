@@ -36,6 +36,7 @@ export default async function VideoDetailPage({
             )}
             <Button
               variant="outline"
+              nativeButton={false}
               render={<Link href={`/campaigns/${video.campaign.id}`} />}
             >
               Back to campaign
@@ -131,7 +132,12 @@ export default async function VideoDetailPage({
                 poster={video.thumbnailUrl ?? undefined}
                 className="mx-auto aspect-[9/16] max-h-[70vh] rounded-md bg-black"
               />
-              <Button variant="outline" size="sm" render={<a href={video.videoUrl} download />}>
+              <Button
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<a href={video.videoUrl} download />}
+              >
                 Download MP4
               </Button>
             </CardContent>
