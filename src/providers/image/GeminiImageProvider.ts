@@ -24,12 +24,16 @@ export class GeminiImageProvider implements ImageGenerationProvider {
     options?: ImageGenerationOptions,
   ): Promise<ImageGenerationResult> {
     const ratio = options?.aspectRatio ?? "9:16";
-    const fullPrompt = `${prompt}\n\nProduce a ${ratio} vertical image.`;
+    const fullPrompt = `${prompt}\n\nFull-bleed ${ratio} vertical portrait composition; keep the subject centered with headroom.`;
 
     const response = await this.client.models.generateContent({
       model: this.model,
       contents: fullPrompt,
-      config: { responseModalities: ["IMAGE"] },
+      config: {
+        responseModalities: ["IMAGE"],
+        // Native aspect-ratio control (Gemini image models).
+        imageConfig: { aspectRatio: ratio },
+      },
     });
 
     const parts = response.candidates?.[0]?.content?.parts ?? [];

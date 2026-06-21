@@ -32,16 +32,31 @@ export function ffmpegAvailable(): Promise<boolean> {
   });
 }
 
+// Some ffmpeg builds omit the drawtext filter (no libfreetype). Detect once so
+// we can skip text overlay gracefully instead of failing the whole render.
+let drawtextCache: boolean | undefined;
+export function drawtextAvailable(): Promise<boolean> {
+  if (drawtextCache !== undefined) return Promise.resolve(drawtextCache);
+  return new Promise((resolve) => {
+    const proc = spawn(FFMPEG, ["-hide_banner", "-filters"]);
+    let out = "";
+    proc.stdout.on("data", (d) => (out += d.toString()));
+    proc.on("error", () => resolve((drawtextCache = false)));
+    proc.on("close", () => resolve((drawtextCache = /(^|\s)drawtext\b/m.test(out))));
+  });
+}
+
 /**
  * Pure builder for the ffmpeg argument vector. Kept side-effect-free so the
  * filtergraph and input-index bookkeeping can be unit-tested without ffmpeg.
  */
 export function buildRenderArgs(
   input: RenderInput,
-  opts: { fontPath?: string } = {},
+  opts: { fontPath?: string; drawtext?: boolean } = {},
 ): string[] {
   const { scenes } = input;
   const fontPath = opts.fontPath ?? FONT_PATH;
+  const drawtext = opts.drawtext ?? true;
   const args: string[] = ["-y"];
 
   // Image inputs (looped stills; zoompan controls clip length).
@@ -76,7 +91,7 @@ export function buildRenderArgs(
       `d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS},` +
       `fade=t=in:st=0:d=0.4,fade=t=out:st=${fadeOut}:d=0.4`;
 
-    if (scene.overlayText?.trim() && fontPath) {
+    if (scene.overlayText?.trim() && fontPath && drawtext) {
       chain +=
         `,drawtext=fontfile='${fontPath}':text='${escapeDrawtext(scene.overlayText.trim())}':` +
         `fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=20:` +
@@ -147,7 +162,8 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     await fs.mkdir(path.dirname(input.outputVideoPath), { recursive: true });
     await fs.mkdir(path.dirname(input.outputThumbnailPath), { recursive: true });
 
-    const args = buildRenderArgs(input);
+    const drawtext = await drawtextAvailable();
+    const args = buildRenderArgs(input, { drawtext });
     const command = `${FFMPEG} ${args.join(" ")}`;
     await this.run(args);
 
