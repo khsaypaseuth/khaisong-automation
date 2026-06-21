@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildRenderArgs,
   escapeDrawtext,
+  effectiveDurations,
 } from "@/providers/video/FFmpegVideoRenderer";
 
 function baseInput() {
@@ -61,5 +62,43 @@ describe("buildRenderArgs", () => {
 describe("escapeDrawtext", () => {
   it("escapes colons and percent signs", () => {
     expect(escapeDrawtext("a:b%c")).toBe("a\\:b\\%c");
+  });
+});
+
+describe("effectiveDurations", () => {
+  const scenes = [{ durationSeconds: 5 }, { durationSeconds: 5 }];
+
+  it("returns base durations with no target", () => {
+    expect(effectiveDurations(scenes)).toEqual([5, 5]);
+  });
+
+  it("scales proportionally to the target total", () => {
+    expect(effectiveDurations(scenes, 5)).toEqual([2.5, 2.5]);
+  });
+
+  it("clamps each scene to a minimum of 1s", () => {
+    expect(effectiveDurations(scenes, 1)).toEqual([1, 1]);
+  });
+});
+
+describe("buildRenderArgs with overlay PNGs", () => {
+  it("inserts overlay inputs after images and shifts voice index", () => {
+    const args = buildRenderArgs({
+      scenes: [
+        { imagePath: "/s/1.png", overlayImagePath: "/o/1.png", durationSeconds: 5 },
+        { imagePath: "/s/2.png", overlayImagePath: "/o/2.png", durationSeconds: 5 },
+      ],
+      voiceAudioPath: "/s/voice.wav",
+      outputVideoPath: "/s/out.mp4",
+      outputThumbnailPath: "/s/thumb.jpg",
+    });
+    expect(args.filter((a) => a === "-i")).toHaveLength(5); // 2 images + 2 overlays + voice
+    const fg = args[args.indexOf("-filter_complex") + 1];
+    // overlays are inputs 2 and 3; voice is input 4
+    expect(fg).toContain("[2:v]scale=1080:1920[ov0]");
+    expect(fg).toContain("[base0][ov0]overlay=0:0[sv0]");
+    expect(fg).toContain("[3:v]scale=1080:1920[ov1]");
+    expect(fg).toContain("[4:a]aresample=async=1[aout]");
+    expect(fg).toContain("[sv0][sv1]concat=n=2:v=1:a=0[vcat]");
   });
 });

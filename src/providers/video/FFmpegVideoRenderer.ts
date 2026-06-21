@@ -50,6 +50,19 @@ export function drawtextAvailable(): Promise<boolean> {
  * Pure builder for the ffmpeg argument vector. Kept side-effect-free so the
  * filtergraph and input-index bookkeeping can be unit-tested without ffmpeg.
  */
+/** Scene durations scaled so the visuals span targetDurationSeconds (the
+ * voiceover length). Preserves relative pacing; min 1s each. */
+export function effectiveDurations(
+  scenes: { durationSeconds: number }[],
+  target?: number | null,
+): number[] {
+  const base = scenes.map((s) => Math.max(1, s.durationSeconds || 5));
+  if (!target || target <= 0) return base;
+  const sum = base.reduce((a, b) => a + b, 0);
+  const factor = target / sum;
+  return base.map((d) => Math.max(1, Math.round(d * factor * 100) / 100));
+}
+
 export function buildRenderArgs(
   input: RenderInput,
   opts: { fontPath?: string; drawtext?: boolean } = {},
@@ -57,13 +70,24 @@ export function buildRenderArgs(
   const { scenes } = input;
   const fontPath = opts.fontPath ?? FONT_PATH;
   const drawtext = opts.drawtext ?? true;
+  const durations = effectiveDurations(scenes, input.targetDurationSeconds);
   const args: string[] = ["-y"];
 
   // Image inputs (looped stills; zoompan controls clip length).
   for (const scene of scenes) {
     args.push("-loop", "1", "-i", scene.imagePath);
   }
-  const voiceIdx = scenes.length;
+
+  // Pre-rendered overlay text PNGs (one per scene that has one).
+  const overlayIdx: number[] = scenes.map(() => -1);
+  scenes.forEach((scene, i) => {
+    if (scene.overlayImagePath) {
+      overlayIdx[i] = args.filter((a) => a === "-i").length;
+      args.push("-loop", "1", "-i", scene.overlayImagePath);
+    }
+  });
+
+  const voiceIdx = args.filter((a) => a === "-i").length;
   args.push("-i", input.voiceAudioPath);
 
   let musicIdx = -1;
@@ -81,7 +105,7 @@ export function buildRenderArgs(
   const sceneLabels: string[] = [];
 
   scenes.forEach((scene, i) => {
-    const dur = Math.max(1, scene.durationSeconds || 5);
+    const dur = durations[i];
     const frames = Math.round(dur * FPS);
     const fadeOut = Math.max(0, dur - 0.4).toFixed(2);
     let chain =
@@ -91,16 +115,24 @@ export function buildRenderArgs(
       `d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS},` +
       `fade=t=in:st=0:d=0.4,fade=t=out:st=${fadeOut}:d=0.4`;
 
-    if (scene.overlayText?.trim() && fontPath && drawtext) {
+    // Text overlay: prefer a pre-rendered PNG (portable); else drawtext.
+    if (overlayIdx[i] < 0 && scene.overlayText?.trim() && fontPath && drawtext) {
       chain +=
         `,drawtext=fontfile='${fontPath}':text='${escapeDrawtext(scene.overlayText.trim())}':` +
         `fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=20:` +
         `x=(w-text_w)/2:y=h-360:line_spacing=10`;
     }
 
-    chain += `[sv${i}]`;
+    chain += `[base${i}]`;
     filters.push(chain);
-    sceneLabels.push(`[sv${i}]`);
+
+    if (overlayIdx[i] >= 0) {
+      filters.push(`[${overlayIdx[i]}:v]scale=${WIDTH}:${HEIGHT}[ov${i}]`);
+      filters.push(`[base${i}][ov${i}]overlay=0:0[sv${i}]`);
+      sceneLabels.push(`[sv${i}]`);
+    } else {
+      sceneLabels.push(`[base${i}]`);
+    }
   });
 
   // Concatenate scene clips into one video stream.
@@ -180,9 +212,11 @@ export class FFmpegVideoRenderer implements VideoRenderer {
     ]);
 
     const stat = await fs.stat(input.outputVideoPath);
-    const totalDuration = scenes.reduce(
-      (sum, s) => sum + Math.max(1, s.durationSeconds || 5),
-      0,
+    const totalDuration = Math.round(
+      effectiveDurations(scenes, input.targetDurationSeconds).reduce(
+        (sum, d) => sum + d,
+        0,
+      ),
     );
 
     return {

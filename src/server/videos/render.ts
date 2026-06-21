@@ -4,8 +4,10 @@ import { getVideoRenderer } from "@/providers";
 import {
   diskPathFromUrl,
   resolveStoragePath,
+  saveFile,
   fileUrl,
 } from "@/lib/storage";
+import { renderOverlayPng } from "./text-overlay";
 
 async function existingPath(p?: string | null): Promise<string | null> {
   if (!p) return null;
@@ -53,16 +55,38 @@ export async function renderVideo(videoPostId: string): Promise<void> {
   try {
     const musicPath = await existingPath(process.env.DEFAULT_BACKGROUND_MUSIC_PATH);
     const logoPath = await existingPath(process.env.DEFAULT_LOGO_PATH);
+    const fontPath = await existingPath(process.env.FFMPEG_FONT_PATH);
+
+    // Pre-render overlay text to transparent PNGs (portable; renders Lao
+    // reliably without ffmpeg's drawtext).
+    const overlayByScene = new Map<string, string>();
+    if (fontPath) {
+      for (const s of scenes) {
+        if (!s.overlayText?.trim()) continue;
+        try {
+          const png = await renderOverlayPng(s.overlayText, fontPath);
+          if (png) {
+            const rel = `campaigns/${video.campaignId}/${videoPostId}/overlays/scene-${s.sceneNumber}.png`;
+            await saveFile(rel, png);
+            overlayByScene.set(s.id, resolveStoragePath(rel));
+          }
+        } catch (e) {
+          console.error(`overlay render failed for scene ${s.sceneNumber}`, e);
+        }
+      }
+    }
 
     const result = await renderer.render({
       scenes: scenes.map((s) => ({
         imagePath: diskPathFromUrl(s.imageUrl!),
         overlayText: s.overlayText,
+        overlayImagePath: overlayByScene.get(s.id) ?? null,
         durationSeconds: s.durationSeconds,
       })),
       voiceAudioPath: diskPathFromUrl(voice.audioUrl),
       backgroundMusicPath: musicPath,
       logoPath,
+      targetDurationSeconds: voice.durationSeconds ?? null,
       outputVideoPath: resolveStoragePath(outputVideoRel),
       outputThumbnailPath: resolveStoragePath(outputThumbRel),
     });

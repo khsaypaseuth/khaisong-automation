@@ -4,6 +4,8 @@
 export type RenderScene = {
   imagePath: string;
   overlayText?: string | null;
+  /** Optional pre-rendered transparent PNG (1080x1920) with the overlay text. */
+  overlayImagePath?: string | null;
   durationSeconds: number;
 };
 
@@ -12,6 +14,9 @@ export type RenderInput = {
   voiceAudioPath: string;
   backgroundMusicPath?: string | null;
   logoPath?: string | null;
+  /** Scale scene durations so the visuals span this many seconds (the
+   * voiceover length), so every image is shown. */
+  targetDurationSeconds?: number | null;
   outputVideoPath: string;
   outputThumbnailPath: string;
 };
