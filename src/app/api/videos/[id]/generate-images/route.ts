@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession, notFound } from "@/lib/api";
 import { prisma } from "@/lib/db";
 import { dispatchGenerateImages } from "@/server/jobs/dispatch";
-import { resolveKeys } from "@/server/settings/keys";
+import { resolveKeys, selectImageProvider } from "@/server/settings/keys";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,10 +10,9 @@ export async function POST(_req: Request, { params }: Params) {
   const auth = await requireSession();
   if ("response" in auth) return auth.response;
 
-  const { imageKey } = await resolveKeys();
-  if (!imageKey) {
+  if (!selectImageProvider(await resolveKeys())) {
     return NextResponse.json(
-      { error: "No image provider key configured (Settings or env)" },
+      { error: "No image provider configured (set an OpenAI or Gemini key)" },
       { status: 503 },
     );
   }

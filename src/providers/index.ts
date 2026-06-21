@@ -1,38 +1,53 @@
 // Central provider registry. Resolves keys from the Settings table (falling
-// back to env) and returns the configured implementation, or a NotImplemented
-// stub when unconfigured. Later phases swap implementations without touching
-// call sites.
+// back to env), picks the active provider, and returns the implementation — or
+// a NotImplemented stub when unconfigured.
 
 import { NotImplementedTextProvider, type TextProvider } from "./text/TextProvider";
 import { OpenAITextProvider } from "./text/OpenAITextProvider";
+import { GeminiTextProvider } from "./text/GeminiTextProvider";
 import {
   NotImplementedImageProvider,
   type ImageGenerationProvider,
 } from "./image/ImageGenerationProvider";
 import { OpenAIImageProvider } from "./image/OpenAIImageProvider";
+import { GeminiImageProvider } from "./image/GeminiImageProvider";
 import { NotImplementedTTSProvider, type TTSProvider } from "./tts/TTSProvider";
 import { GeminiTTSProvider } from "./tts/GeminiTTSProvider";
 import { type VideoRenderer } from "./video/VideoRenderer";
 import { FFmpegVideoRenderer } from "./video/FFmpegVideoRenderer";
-import { resolveKeys } from "@/server/settings/keys";
+import {
+  resolveKeys,
+  selectTextProvider,
+  selectImageProvider,
+} from "@/server/settings/keys";
 
 export async function getTextProvider(): Promise<TextProvider> {
-  const { openaiKey, openaiModel } = await resolveKeys();
-  if (openaiKey) return new OpenAITextProvider(openaiKey, openaiModel);
-  return new NotImplementedTextProvider();
+  const keys = await resolveKeys();
+  switch (selectTextProvider(keys)) {
+    case "gemini":
+      return new GeminiTextProvider(keys.geminiKey, keys.geminiTextModel);
+    case "openai":
+      return new OpenAITextProvider(keys.openaiKey, keys.openaiModel);
+    default:
+      return new NotImplementedTextProvider();
+  }
 }
 
 export async function getImageProvider(): Promise<ImageGenerationProvider> {
-  const { imageProvider, imageKey, imageModel } = await resolveKeys();
-  if (imageProvider === "openai" && imageKey) {
-    return new OpenAIImageProvider(imageKey, imageModel);
+  const keys = await resolveKeys();
+  switch (selectImageProvider(keys)) {
+    case "gemini":
+      return new GeminiImageProvider(keys.geminiKey, keys.geminiImageModel);
+    case "openai":
+      return new OpenAIImageProvider(keys.imageKey, keys.imageModel);
+    default:
+      return new NotImplementedImageProvider();
   }
-  return new NotImplementedImageProvider();
 }
 
 export async function getTTSProvider(): Promise<TTSProvider> {
-  const { geminiKey, geminiModel } = await resolveKeys();
-  if (geminiKey) return new GeminiTTSProvider(geminiKey, geminiModel);
+  const { geminiKey, geminiTtsModel } = await resolveKeys();
+  if (geminiKey) return new GeminiTTSProvider(geminiKey, geminiTtsModel);
   return new NotImplementedTTSProvider();
 }
 

@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import IORedis from "ioredis";
 import { requireSession } from "@/lib/api";
 import { prisma } from "@/lib/db";
-import { resolveKeys } from "@/server/settings/keys";
+import {
+  resolveKeys,
+  selectTextProvider,
+  selectImageProvider,
+} from "@/server/settings/keys";
 import { resolveSocialConfig } from "@/server/videos/social-posting";
 import { ffmpegAvailable } from "@/providers/video/FFmpegVideoRenderer";
 
@@ -54,9 +58,10 @@ export async function GET() {
       ffmpeg: { ok: ffmpeg },
     },
     providers: {
+      activeTextProvider: selectTextProvider(keys),
+      activeImageProvider: selectImageProvider(keys),
       openai: Boolean(keys.openaiKey),
       gemini: Boolean(keys.geminiKey),
-      image: Boolean(keys.imageKey),
       facebook: Boolean(social.facebook),
       tiktok: Boolean(social.tiktok),
     },

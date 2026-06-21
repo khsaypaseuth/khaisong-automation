@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession, notFound } from "@/lib/api";
 import { prisma } from "@/lib/db";
 import { dispatchGenerateScripts } from "@/server/jobs/dispatch";
-import { resolveKeys } from "@/server/settings/keys";
+import { resolveKeys, selectTextProvider } from "@/server/settings/keys";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,10 +10,9 @@ export async function POST(_req: Request, { params }: Params) {
   const auth = await requireSession();
   if ("response" in auth) return auth.response;
 
-  const { openaiKey } = await resolveKeys();
-  if (!openaiKey) {
+  if (!selectTextProvider(await resolveKeys())) {
     return NextResponse.json(
-      { error: "OpenAI API key is not configured (Settings or env)" },
+      { error: "No text provider configured (set an OpenAI or Gemini key)" },
       { status: 503 },
     );
   }
