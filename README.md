@@ -33,6 +33,12 @@ Provider API keys are read from the **Settings** page first, falling back to env
 - **Regenerate all** (video page) re-runs that pipeline for a single video; per-step
   regenerate buttons re-run just images, voice, or render.
 
+## Activity log
+
+The **Activity Log** page surfaces recent `api_logs` (provider calls — scripts, images,
+voice, render) and `posting_logs` (manual + API posts), with errors highlighted — the
+first place to look when a generation or post fails.
+
 ## Testing
 
 `pnpm test` runs the Vitest unit suite (pure logic: WAV header builder, generation schema,
@@ -157,7 +163,7 @@ prisma/                  Schema (all tables) + seed
 src/
   app/
     (auth)/login         Login page
-    (dashboard)/         Sidebar shell: dashboard, campaigns, calendar, settings, videos
+    (dashboard)/         Sidebar shell: dashboard, campaigns, calendar, logs, settings, videos
     api/                 Route handlers (campaigns, videos, calendar, settings, auth)
                          + 501 stubs for generation/posting (later phases)
   components/            UI + feature components
