@@ -141,6 +141,10 @@ pnpm dev             # http://localhost:3000
 
 Sign in with the `ADMIN_EMAIL` / `ADMIN_PASSWORD` from your `.env`.
 
+For a layered, step-by-step test plan (which keys to add when, and a troubleshooting
+table), see **[TESTING.md](TESTING.md)**. Visit `/api/health` (while logged in) to check
+DB / Redis / FFmpeg reachability and which providers are configured.
+
 ## Scripts
 
 | Command | Description |
