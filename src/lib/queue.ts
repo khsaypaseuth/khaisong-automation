@@ -10,6 +10,7 @@ export const QUEUE_NAMES = {
   generateImages: "generate-images",
   generateVoice: "generate-voice",
   renderVideo: "render-video",
+  videoPipeline: "video-pipeline",
   postToSocial: "post-to-social",
 } as const;
 

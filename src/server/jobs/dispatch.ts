@@ -3,6 +3,7 @@ import { generateCampaignScripts } from "@/server/campaigns/generation";
 import { generateVideoImages } from "@/server/videos/image-generation";
 import { generateVideoVoice } from "@/server/videos/voice-generation";
 import { renderVideo } from "@/server/videos/render";
+import { runVideoPipeline } from "@/server/videos/pipeline";
 import { postToSocial } from "@/server/videos/social-posting";
 import type { Platform } from "@prisma/client";
 
@@ -10,6 +11,7 @@ export type GenerateScriptsJob = { campaignId: string };
 export type GenerateImagesJob = { videoPostId: string };
 export type GenerateVoiceJob = { videoPostId: string };
 export type RenderVideoJob = { videoPostId: string };
+export type VideoPipelineJob = { videoPostId: string };
 export type PostToSocialJob = { videoPostId: string; platform: Platform };
 
 /**
@@ -78,6 +80,21 @@ export async function dispatchRenderVideo(videoPostId: string): Promise<void> {
   await getQueue(QUEUE_NAMES.renderVideo).add(
     "render",
     { videoPostId } satisfies RenderVideoJob,
+    { attempts: 1, removeOnComplete: 50 },
+  );
+}
+
+export async function dispatchVideoPipeline(videoPostId: string): Promise<void> {
+  if (runInline()) {
+    void runVideoPipeline(videoPostId).catch((err) => {
+      console.error(`[inline] runVideoPipeline failed: ${videoPostId}`, err);
+    });
+    return;
+  }
+
+  await getQueue(QUEUE_NAMES.videoPipeline).add(
+    "pipeline",
+    { videoPostId } satisfies VideoPipelineJob,
     { attempts: 1, removeOnComplete: 50 },
   );
 }

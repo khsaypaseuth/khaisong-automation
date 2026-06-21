@@ -24,6 +24,22 @@ Generation runs as a background job:
 - **With a worker:** leave `INLINE_JOBS` empty, run Redis, and start `pnpm worker`
   alongside `pnpm dev`. The route enqueues a BullMQ job the worker processes.
 
+Provider API keys are read from the **Settings** page first, falling back to env vars.
+
+### Batch + regenerate
+
+- **Generate all assets** (campaign page) runs the full pipeline — images → voice →
+  render — for every video with a storyboard.
+- **Regenerate all** (video page) re-runs that pipeline for a single video; per-step
+  regenerate buttons re-run just images, voice, or render.
+
+## Testing
+
+`pnpm test` runs the Vitest unit suite (pure logic: WAV header builder, generation schema,
+storage path guards, the ffmpeg arg/index builder, and label helpers). The AI/FFmpeg/posting
+integrations require live services and are **not** covered by unit tests — see the caveats
+above.
+
 ## Image generation (Phase 3)
 
 On a **video detail page**, click **Generate images**. One image per storyboard scene
@@ -127,6 +143,7 @@ Sign in with the `ADMIN_EMAIL` / `ADMIN_PASSWORD` from your `.env`.
 | `pnpm build` | Production build |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` | ESLint |
+| `pnpm test` | Run the Vitest unit suite |
 | `pnpm db:up` | Start Postgres + Redis (Docker) |
 | `pnpm db:migrate` | Apply Prisma migrations |
 | `pnpm db:seed` | Seed admin + example campaign |

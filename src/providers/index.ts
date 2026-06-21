@@ -1,6 +1,7 @@
-// Central provider registry. Phase 1 wires NotImplemented stubs; later phases
-// swap in real implementations (OpenAI, Gemini TTS, Nano Banana, FFmpeg, …)
-// without touching call sites.
+// Central provider registry. Resolves keys from the Settings table (falling
+// back to env) and returns the configured implementation, or a NotImplemented
+// stub when unconfigured. Later phases swap implementations without touching
+// call sites.
 
 import { NotImplementedTextProvider, type TextProvider } from "./text/TextProvider";
 import { OpenAITextProvider } from "./text/OpenAITextProvider";
@@ -13,48 +14,28 @@ import { NotImplementedTTSProvider, type TTSProvider } from "./tts/TTSProvider";
 import { GeminiTTSProvider } from "./tts/GeminiTTSProvider";
 import { type VideoRenderer } from "./video/VideoRenderer";
 import { FFmpegVideoRenderer } from "./video/FFmpegVideoRenderer";
-import {
-  NotImplementedSocialPoster,
-  type SocialPlatform,
-  type SocialPoster,
-} from "./social/SocialPoster";
+import { resolveKeys } from "@/server/settings/keys";
 
-export function getTextProvider(): TextProvider {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (apiKey) {
-    const model = process.env.OPENAI_MODEL || "gpt-5-mini";
-    return new OpenAITextProvider(apiKey, model);
-  }
+export async function getTextProvider(): Promise<TextProvider> {
+  const { openaiKey, openaiModel } = await resolveKeys();
+  if (openaiKey) return new OpenAITextProvider(openaiKey, openaiModel);
   return new NotImplementedTextProvider();
 }
 
-export function getImageProvider(): ImageGenerationProvider {
-  // IMAGE_PROVIDER selects the implementation; defaults to OpenAI when a key
-  // is available. Add Gemini/Nano Banana/Magnific adapters here as needed.
-  const provider = (process.env.IMAGE_PROVIDER || "openai").toLowerCase();
-  if (provider === "openai") {
-    const apiKey = process.env.IMAGE_PROVIDER_API_KEY || process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      const model = process.env.IMAGE_PROVIDER_MODEL || "gpt-image-1";
-      return new OpenAIImageProvider(apiKey, model);
-    }
+export async function getImageProvider(): Promise<ImageGenerationProvider> {
+  const { imageProvider, imageKey, imageModel } = await resolveKeys();
+  if (imageProvider === "openai" && imageKey) {
+    return new OpenAIImageProvider(imageKey, imageModel);
   }
   return new NotImplementedImageProvider();
 }
 
-export function getTTSProvider(): TTSProvider {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey) {
-    const model = process.env.GEMINI_TTS_MODEL || "gemini-2.5-flash-preview-tts";
-    return new GeminiTTSProvider(apiKey, model);
-  }
+export async function getTTSProvider(): Promise<TTSProvider> {
+  const { geminiKey, geminiModel } = await resolveKeys();
+  if (geminiKey) return new GeminiTTSProvider(geminiKey, geminiModel);
   return new NotImplementedTTSProvider();
 }
 
 export function getVideoRenderer(): VideoRenderer {
   return new FFmpegVideoRenderer();
-}
-
-export function getSocialPoster(platform: SocialPlatform): SocialPoster {
-  return new NotImplementedSocialPoster(platform);
 }

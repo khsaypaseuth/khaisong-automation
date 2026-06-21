@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CampaignActions } from "@/components/campaigns/campaign-actions";
 import { GenerateScriptsButton } from "@/components/campaigns/generate-scripts-button";
+import { GenerateAllButton } from "@/components/campaigns/generate-all-button";
 import { VideoManager } from "@/components/videos/video-manager";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
@@ -67,10 +68,15 @@ export default async function CampaignDetailPage({
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-tight">Video posts</h2>
-          <GenerateScriptsButton
-            campaignId={campaign.id}
-            status={campaign.status}
-          />
+          <div className="flex gap-2">
+            <GenerateScriptsButton
+              campaignId={campaign.id}
+              status={campaign.status}
+            />
+            {campaign.videoPosts.length > 0 && (
+              <GenerateAllButton campaignId={campaign.id} />
+            )}
+          </div>
         </div>
         {campaign.status === "GENERATING_SCRIPTS" && (
           <div className="mb-4 rounded-md border border-dashed bg-muted/40 px-4 py-3 text-sm text-muted-foreground">

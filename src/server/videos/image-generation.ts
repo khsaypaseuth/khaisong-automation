@@ -34,7 +34,7 @@ export async function generateVideoImages(videoPostId: string): Promise<void> {
     data: { status: "GENERATING_IMAGES" },
   });
 
-  const provider = getImageProvider();
+  const provider = await getImageProvider();
 
   try {
     for (const scene of scenes) {

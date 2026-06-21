@@ -61,7 +61,7 @@ export async function generateCampaignScripts(campaignId: string): Promise<void>
     data: { status: "GENERATING_SCRIPTS" },
   });
 
-  const provider = getTextProvider();
+  const provider = await getTextProvider();
 
   try {
     const output = await provider.generateCampaignPlans({

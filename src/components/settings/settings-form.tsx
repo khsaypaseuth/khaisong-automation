@@ -13,7 +13,7 @@ type Field = { key: string; label: string; secret?: boolean; placeholder?: strin
 const GROUPS: { title: string; note?: string; fields: Field[] }[] = [
   {
     title: "AI provider keys",
-    note: "Stored now, used in later phases. Not validated yet.",
+    note: "Used by generation when set; otherwise falls back to env vars. Not validated here.",
     fields: [
       { key: "openai_api_key", label: "OpenAI API key", secret: true },
       { key: "gemini_api_key", label: "Gemini API key", secret: true },

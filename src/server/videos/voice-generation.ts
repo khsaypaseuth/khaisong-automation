@@ -21,7 +21,7 @@ export async function generateVideoVoice(videoPostId: string): Promise<void> {
     data: { status: "GENERATING_VOICE" },
   });
 
-  const provider = getTTSProvider();
+  const provider = await getTTSProvider();
 
   try {
     const result = await provider.generateSpeech(script, {

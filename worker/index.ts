@@ -8,6 +8,7 @@ import { generateCampaignScripts } from "../src/server/campaigns/generation";
 import { generateVideoImages } from "../src/server/videos/image-generation";
 import { generateVideoVoice } from "../src/server/videos/voice-generation";
 import { renderVideo } from "../src/server/videos/render";
+import { runVideoPipeline } from "../src/server/videos/pipeline";
 import { postToSocial } from "../src/server/videos/social-posting";
 import { runScheduledPosting } from "../src/server/jobs/scheduler";
 import type {
@@ -15,6 +16,7 @@ import type {
   GenerateImagesJob,
   GenerateVoiceJob,
   RenderVideoJob,
+  VideoPipelineJob,
   PostToSocialJob,
 } from "../src/server/jobs/dispatch";
 
@@ -86,6 +88,22 @@ async function main() {
     console.error(`[render-video] failed ${job?.id}:`, err.message),
   );
 
+  const pipelineWorker = new Worker<VideoPipelineJob>(
+    QUEUE_NAMES.videoPipeline,
+    async (job) => {
+      console.log(`[video-pipeline] video ${job.data.videoPostId}`);
+      await runVideoPipeline(job.data.videoPostId);
+    },
+    { connection: connection as unknown as ConnectionOptions, concurrency: 1 },
+  );
+
+  pipelineWorker.on("completed", (job) =>
+    console.log(`[video-pipeline] done ${job.id}`),
+  );
+  pipelineWorker.on("failed", (job, err) =>
+    console.error(`[video-pipeline] failed ${job?.id}:`, err.message),
+  );
+
   const postWorker = new Worker<PostToSocialJob>(
     QUEUE_NAMES.postToSocial,
     async (job) => {
@@ -109,6 +127,7 @@ async function main() {
     QUEUE_NAMES.generateImages,
     QUEUE_NAMES.generateVoice,
     QUEUE_NAMES.renderVideo,
+    QUEUE_NAMES.videoPipeline,
     QUEUE_NAMES.postToSocial,
   ]);
 

@@ -10,6 +10,7 @@ import { GenerateVoiceButton } from "@/components/videos/generate-voice-button";
 import { RenderVideoButton } from "@/components/videos/render-video-button";
 import { ReviewPanel } from "@/components/videos/review-panel";
 import { PostingPanel } from "@/components/videos/posting-panel";
+import { RegenerateButton } from "@/components/videos/regenerate-button";
 import { statusVariant, titleCase, PLATFORM_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -29,12 +30,17 @@ export default async function VideoDetailPage({
         title={video.title}
         description={`Campaign: ${video.campaign.title}`}
         action={
-          <Button
-            variant="outline"
-            render={<Link href={`/campaigns/${video.campaign.id}`} />}
-          >
-            Back to campaign
-          </Button>
+          <div className="flex gap-2">
+            {video.scenes.length > 0 && (
+              <RegenerateButton videoId={video.id} />
+            )}
+            <Button
+              variant="outline"
+              render={<Link href={`/campaigns/${video.campaign.id}`} />}
+            >
+              Back to campaign
+            </Button>
+          </div>
         }
       />
 
