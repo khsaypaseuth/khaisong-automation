@@ -82,7 +82,7 @@ describe("effectiveDurations", () => {
 });
 
 describe("buildRenderArgs with overlay PNGs", () => {
-  it("inserts overlay inputs after images and shifts voice index", () => {
+  it("composites captions after concat with per-scene enable windows", () => {
     const args = buildRenderArgs({
       scenes: [
         { imagePath: "/s/1.png", overlayImagePath: "/o/1.png", durationSeconds: 5 },
@@ -94,11 +94,27 @@ describe("buildRenderArgs with overlay PNGs", () => {
     });
     expect(args.filter((a) => a === "-i")).toHaveLength(5); // 2 images + 2 overlays + voice
     const fg = args[args.indexOf("-filter_complex") + 1];
-    // overlays are inputs 2 and 3; voice is input 4
-    expect(fg).toContain("[2:v]scale=1080:1920[ov0]");
-    expect(fg).toContain("[base0][ov0]overlay=0:0[sv0]");
-    expect(fg).toContain("[3:v]scale=1080:1920[ov1]");
-    expect(fg).toContain("[4:a]aresample=async=1[aout]");
+    // scenes concat first, then overlays applied with time windows
     expect(fg).toContain("[sv0][sv1]concat=n=2:v=1:a=0[vcat]");
+    expect(fg).toContain("overlay=0:0:enable='between(t,0.00,5.00)'");
+    expect(fg).toContain("overlay=0:0:enable='between(t,5.00,10.00)'");
+    expect(fg).toContain("[4:a]aresample=async=1[aout]");
+  });
+
+  it("scales overlay windows to the target duration", () => {
+    const args = buildRenderArgs({
+      scenes: [
+        { imagePath: "/s/1.png", overlayImagePath: "/o/1.png", durationSeconds: 5 },
+        { imagePath: "/s/2.png", overlayImagePath: "/o/2.png", durationSeconds: 5 },
+      ],
+      voiceAudioPath: "/s/voice.wav",
+      targetDurationSeconds: 6,
+      outputVideoPath: "/s/out.mp4",
+      outputThumbnailPath: "/s/thumb.jpg",
+    });
+    const fg = args[args.indexOf("-filter_complex") + 1];
+    // 10s of base scaled to 6s -> 3s each
+    expect(fg).toContain("between(t,0.00,3.00)");
+    expect(fg).toContain("between(t,3.00,6.00)");
   });
 });

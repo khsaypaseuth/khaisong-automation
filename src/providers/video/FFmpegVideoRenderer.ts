@@ -73,9 +73,11 @@ export function buildRenderArgs(
   const durations = effectiveDurations(scenes, input.targetDurationSeconds);
   const args: string[] = ["-y"];
 
-  // Image inputs (looped stills; zoompan controls clip length).
+  // Image inputs as single frames; zoompan expands each to its clip length.
+  // (Do NOT -loop here: an infinite input makes the clip infinite and concat
+  // never advances past the first scene.)
   for (const scene of scenes) {
-    args.push("-loop", "1", "-i", scene.imagePath);
+    args.push("-i", scene.imagePath);
   }
 
   // Pre-rendered overlay text PNGs (one per scene that has one).
@@ -103,9 +105,13 @@ export function buildRenderArgs(
 
   const filters: string[] = [];
   const sceneLabels: string[] = [];
+  const starts: number[] = []; // cumulative start time of each scene
 
+  let clock = 0;
   scenes.forEach((scene, i) => {
+    starts.push(clock);
     const dur = durations[i];
+    clock += dur;
     const frames = Math.round(dur * FPS);
     const fadeOut = Math.max(0, dur - 0.4).toFixed(2);
     let chain =
@@ -115,7 +121,7 @@ export function buildRenderArgs(
       `d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS},` +
       `fade=t=in:st=0:d=0.4,fade=t=out:st=${fadeOut}:d=0.4`;
 
-    // Text overlay: prefer a pre-rendered PNG (portable); else drawtext.
+    // drawtext fallback only when there's no pre-rendered overlay PNG.
     if (overlayIdx[i] < 0 && scene.overlayText?.trim() && fontPath && drawtext) {
       chain +=
         `,drawtext=fontfile='${fontPath}':text='${escapeDrawtext(scene.overlayText.trim())}':` +
@@ -123,26 +129,34 @@ export function buildRenderArgs(
         `x=(w-text_w)/2:y=h-360:line_spacing=10`;
     }
 
-    chain += `[base${i}]`;
+    chain += `[sv${i}]`;
     filters.push(chain);
-
-    if (overlayIdx[i] >= 0) {
-      filters.push(`[${overlayIdx[i]}:v]scale=${WIDTH}:${HEIGHT}[ov${i}]`);
-      filters.push(`[base${i}][ov${i}]overlay=0:0[sv${i}]`);
-      sceneLabels.push(`[sv${i}]`);
-    } else {
-      sceneLabels.push(`[base${i}]`);
-    }
+    sceneLabels.push(`[sv${i}]`);
   });
 
   // Concatenate scene clips into one video stream.
   filters.push(`${sceneLabels.join("")}concat=n=${scenes.length}:v=1:a=0[vcat]`);
 
-  // Optional logo overlay (top-right).
+  // Composite caption PNGs onto the concatenated stream, each shown only during
+  // its scene's time window. (Overlaying per-scene before concat with looped
+  // inputs hangs ffmpeg; post-concat enable windows are the reliable pattern.)
   let videoOut = "[vcat]";
+  scenes.forEach((scene, i) => {
+    if (overlayIdx[i] < 0) return;
+    const start = starts[i].toFixed(2);
+    const end = (starts[i] + durations[i]).toFixed(2);
+    const next = `[tx${i}]`;
+    filters.push(`[${overlayIdx[i]}:v]scale=${WIDTH}:${HEIGHT}[ovs${i}]`);
+    filters.push(
+      `${videoOut}[ovs${i}]overlay=0:0:enable='between(t,${start},${end})'${next}`,
+    );
+    videoOut = next;
+  });
+
+  // Optional logo overlay (top-right).
   if (logoIdx >= 0) {
     filters.push(`[${logoIdx}:v]scale=220:-1[lg]`);
-    filters.push(`[vcat][lg]overlay=W-w-40:60[vout]`);
+    filters.push(`${videoOut}[lg]overlay=W-w-40:60[vout]`);
     videoOut = "[vout]";
   }
 
@@ -177,7 +191,10 @@ export function buildRenderArgs(
     "aac",
     "-b:a",
     "192k",
-    "-shortest",
+    // Bound the output to the exact visual length. Using -t (not -shortest)
+    // is deterministic; -shortest with looped overlay inputs is racy.
+    "-t",
+    durations.reduce((a, b) => a + b, 0).toFixed(2),
     "-movflags",
     "+faststart",
     input.outputVideoPath,
